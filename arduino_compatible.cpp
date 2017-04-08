@@ -1,6 +1,22 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <iostream>
+
+#define CLK 8
+#define OE  9
+#define LAT 10
+#define A   A0
+#define B   A1
+#define C   A2
+#define D   A3
+
+#define UR 2
+#define UG 3
+#define UB 4
+
+#define LR 5
+#define LG 6
+#define LB 7
+
 
 class cell{
   friend class GRID;
@@ -13,7 +29,7 @@ public:
   const int* getPos()const;
 
 
-cell(bool state):currentState(1),nextState(1), pos(NULL){}
+cell(bool state):currentState(state),nextState(1), pos(NULL){}
 cell():currentState(1),nextState(0),pos(NULL){}
 
 cell* operator[](cell* meep){
@@ -47,6 +63,7 @@ class GRID{
 
     void PrintGRID();
 
+    void shiftToLife();
 
 
     ~GRID(){ //Virtual Method for exiting scope
@@ -78,24 +95,31 @@ private:
 
 int main(int argc, char const *argv[]) {
 
+
 cell* startPoint = (cell*) malloc(64*38*sizeof(cell));
 *startPoint = cell();
 
-int ROW_S = 4;
-int COL_S = 20;
+int ROW_S = 5;
+int COL_S = 5;
 
   for(int i = 1; i <= ROW_S*COL_S; ++i){    //possible errors for Arduino
-        *(startPoint + i) = cell(1);
-        printf("%d",(startPoint + i)->getState());
-  }
+        int r = rand()%2;
+        *(startPoint + i) = cell(r);
+      }
 
 GRID ggrid(ROW_S, COL_S,startPoint,startPoint);
 ggrid.PrintGRID();
 ggrid.update();
+printf("\n");
 ggrid.PrintGRID();
 
-free(startPoint);
 
+ggrid.update();
+printf("\n");
+ggrid.PrintGRID();
+
+
+free(startPoint);
 
 
   return 0;
@@ -129,7 +153,7 @@ GRID::GRID(const int row, const int col, cell* startPointer, cell* currP):
   cP(startPointer),
   rowP(startP)
 {
-  printf("inside instance creator \n");
+
   FillUp();
   PosOfEndRows = (int*) malloc(r * sizeof(int));
   PosOfNewRows = (int*) malloc(r * sizeof(int));
@@ -161,47 +185,40 @@ bool GRID::isSpecialPosForCols(int pos){
 
 
 void GRID::update(){
-//  printf("Start of Update");
 for(int i = 1; i <= numOfCells; ++i){//changes i = 0
   int death = 0;
   int life = 0; //problem
     if(i == 1){   //top left cell
-      printf("//top left cell\n");
-      (startP+1)->getState() ? ++life: ++death; printf("%d", life);
-      (startP+c)->getState() ? ++life: ++death; printf("%d", life);
-      (startP+c+1)->getState() ? ++life: ++death; printf("%d \n", life);
+      (startP+1)->getState() ? ++life: ++death; //("%d", life);
+      (startP+c)->getState() ? ++life: ++death; //("%d", life);
+      (startP+c+1)->getState() ? ++life: ++death; //("%d \n", life);
     }
     else if(i == c){  //top right cell
-      printf("top right cell\n");
       (startP+i-1+c)->getState() ? ++life: ++death;
       (startP+i-2+c)->getState() ? ++life: ++death;
       (startP+i-2)->getState() ? ++life: ++death;
     }
     else if(i == c*(r-1)+1){ // bottom left cell
-      printf("bottom left cell\n");
       (startP+i)->getState() ? ++life: ++death;
       (startP+i-1-c)->getState() ? ++life: ++death;
       (startP+i-c)->getState() ? ++life: ++death;
     }
     else if(i == numOfCells){ //bottom right cell
-     printf("bottom right cell\n");
       (startP+i-2)->getState() ? ++life: ++death;
       (startP+i-1-c)->getState() ? ++life: ++death;
       (startP+i-2-c)->getState() ? ++life: ++death;
     }
 
     else if(isSpecialPosForRows(i)){//left most colomn of Grid
-         printf("left most colomn of Grid\n");
-        (startP+i+1)->getState() ? ++life : ++death;
+        (startP+i)->getState() ? ++life : ++death;
         (startP+i-c)->getState() ? ++life : ++death;
-        (startP+i-c+1)->getState() ? ++life : ++death;
+        (startP+i-c-1)->getState() ? ++life : ++death;
         (startP+i+c)->getState() ? ++life : ++death;
-        (startP+i+c+1)->getState() ? ++life : ++death;
+        (startP+i+c-1)->getState() ? ++life : ++death;
 
     }
 
     else if(isSpecialPosForCols(i)){
-       printf("right most colomn of Grid\n");
         (startP+i-2)->getState() ? ++life : ++death;
         (startP+i-1+c)->getState() ? ++life : ++death;
         (startP+i-2+c)->getState() ? ++life : ++death;
@@ -211,7 +228,6 @@ for(int i = 1; i <= numOfCells; ++i){//changes i = 0
     }
 
     else if(i < c){//top row
-      printf("top row\n");
       (startP+i)->getState() ? ++life: ++death;
       (startP+i-2)->getState() ? ++life: ++death;
       (startP+i-1+c)->getState() ? ++life: ++death;
@@ -219,7 +235,6 @@ for(int i = 1; i <= numOfCells; ++i){//changes i = 0
       (startP+i+c-2)->getState() ? ++life: ++death;
     }
     else if(i < numOfCells and i > c*(r-1)){//bottom row
-      printf("bottom row\n");
       (startP+i)->getState() ? ++life: ++death;
       (startP+i-2)->getState() ? ++life: ++death;
       (startP+i-c)->getState() ? ++life: ++death;
@@ -227,7 +242,6 @@ for(int i = 1; i <= numOfCells; ++i){//changes i = 0
       (startP+i-c-2)->getState() ? ++life: ++death;
     }
     else{
-      printf("else\n");
         (startP+i)->getState() ? ++life: ++death;
         (startP + i - 2)->getState() ? ++life : ++death;
         (startP + i + c)->getState() ? ++life : ++death;
@@ -235,25 +249,20 @@ for(int i = 1; i <= numOfCells; ++i){//changes i = 0
         (startP + i + c -2)->getState() ? ++life : ++death;
         (startP + i - c)->getState() ? ++life : ++death;
         (startP + i - c-1)->getState() ? ++life : ++death;
-        (startP + i - c+1)->getState() ? ++life : ++death;
+        (startP + i - c-2)->getState() ? ++life : ++death;
     }
-    printf("%d\n", life);
     if(life > 3){
-      printf("life<3\n");
       (startP+i-1)->setNextState(0);
     }
     else if(life < 2){
       (startP+i-1)->setNextState(0);
-      printf("life<2\n");
     }
     else if(life == 3 or life == 2){
       (startP+i-1)->setNextState(1);
-      printf("life ==3 or life == 2\n");
     }
 
     else if(!(startP+i-1)->getState() and life == 3){
       (startP+i-1)->setNextState(1);
-      printf("dead but alive\n");
     }
   }
 
@@ -277,4 +286,32 @@ void GRID::FillUp(){ //currently testing
         *(startP + row*col) = cell();
     }
   }
+}
+
+
+
+void GRID::shiftToLife(){
+  // for(int i = 0; i < numOfCells/2; ++i){
+  //   for(int j = 0; j < r/2; j++){
+  //     if( (startP+i)->getState() and (startP+i+r/2*c)->getState() ){
+  //       PORTD = 0b00001001;
+  //     }
+  //     else if( (startP+i)->getState() and !(startP+i+r/2*c)->getState() ){
+  //       PORTD = 0b00000001;
+  //     }
+  //     else if( !(startP+i)->getState() and (startP+i+r/2*c)->getState())
+  //       PORTB = 0b00001000;
+  //     else{
+  //       PORTB = 0b00000000;
+  //     }
+  //     delay(1);
+  //
+  //     PORTB = 0b00000000;
+  //     ++i;
+  //     ++j;
+  //   }
+  //   PORTB = 0b00000100;
+  //   PORTB = 0b00000100;
+  //   ++DDRC; //increment Row
+  // }
 }
